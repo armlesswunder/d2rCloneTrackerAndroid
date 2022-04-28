@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Toast;
@@ -22,6 +23,10 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import static android.content.Context.ALARM_SERVICE;
 import static com.abw4v.d2clonetracker.MainActivity.CHANNEL_ID;
 import static com.abw4v.d2clonetracker.MainActivity.ERROR_CHANNEL_ID;
@@ -38,7 +43,7 @@ public class MyReceiver extends BroadcastReceiver {
 
         RequestQueue queue = Volley.newRequestQueue(context);
 
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, "https://diablo2.io/dclone_api.php?hc=2&ladder=2",
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, MainActivity.getURL(),
                 response -> {
                     try {
                         Long stamp = System.currentTimeMillis();
@@ -62,14 +67,17 @@ public class MyReceiver extends BroadcastReceiver {
                         showError(context, e);
                     }
                 }, error -> {
-                    if (retries < 31) {
+                    if (retries < 5) {
                         error.printStackTrace();
                         getData(context);
                         showError(context, new Throwable("Network Failure, Trying again..."));
                         retries++;
                     } else {
                         error.printStackTrace();
-                        showError(context, new Throwable("Network Failure, Max attempts (30) exceeded! there is probably an issue with d2.io backend or your connection."));
+                        startAlert(context);
+                        MainActivity.keepAwake(context);
+                        retries = 0;
+                        showError(context, new Throwable("Network Failure, Max retries (5) exceeded! There is may be an issue with your connection, battery optimization (doze mode), and/or diablo2.io server."));
                     }
         });
 
@@ -79,7 +87,7 @@ public class MyReceiver extends BroadcastReceiver {
     void setStatus(Status oldStatus) {
         for (int i = 0; i < statusList.size(); i++) {
             Status status = statusList.get(i);
-            if (status.region == oldStatus.region) {
+            if (status.id.equals(oldStatus.id)) {
                 statusList.set(i, oldStatus);
                 break;
             }
@@ -87,8 +95,12 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
     String getMsg() {
+        List<Status> tempList = new ArrayList<>(statusList);
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+            tempList.sort((o1, o2) -> (o1.region - o2.region));
+        }
         StringBuilder temp = new StringBuilder();
-        for (Status status: statusList) {
+        for (Status status: tempList) {
             temp.append(status.getMsg());
         }
         return temp.toString();
@@ -96,7 +108,7 @@ public class MyReceiver extends BroadcastReceiver {
 
     Status getOldStatus(Status newStatus) {
         for (Status status: statusList) {
-            if (status.region == newStatus.region) return status;
+            if (status.id.equals(newStatus.id)) return status;
         }
         return new Status();
     }
@@ -151,7 +163,7 @@ public class MyReceiver extends BroadcastReceiver {
     NotificationCompat.Builder getNotification(Context context, Throwable e) {
 
         NotificationCompat.Builder notificationCompat = new NotificationCompat.Builder(context, ERROR_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_baseline_storm_24)
                 .setContentTitle("ERROR")
                 .setContentText(e.getMessage())
                 .setStyle(new NotificationCompat.BigTextStyle()
@@ -167,8 +179,8 @@ public class MyReceiver extends BroadcastReceiver {
     NotificationCompat.Builder getNotification(Context context) {
 
         NotificationCompat.Builder notificationCompat = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("Update")
+                .setSmallIcon(R.drawable.ic_baseline_storm_24)
+                .setContentTitle("D2R Clone Progress")
                 .setContentText(getMsg() + "\nNext fetch: " + convertDate(startAt + getStartOffest()))
                 .setStyle(new NotificationCompat.BigTextStyle()
                         .bigText(getMsg() + "\nNext fetch: " + convertDate(startAt + getStartOffest())))

@@ -1,6 +1,7 @@
 package com.abw4v.d2clonetracker;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -38,31 +39,37 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Constants
     public static final String CHANNEL_ID ="d2rCloneTrackerProgress";
     public static final String ERROR_CHANNEL_ID ="d2rCloneTrackerError";
+
+    static final String PREFS_HARDCORE = "hardcore";
+    static final String PREFS_LADDER = "ladder";
 
     static final String d2rURL = "https://diablo2.io/";
     static final boolean debug = false;
 
-    TextView lblHours, lblMinutes, lblSeconds;
-    Button btnStart, btnCustomTime;
-    EditText txtSeconds, txtMinutes;
-    Spinner gameSpinner;
+    public static final int BOTH = 0;
 
-    static int time;
-    static int earlySeconds = 30, earlyMinutes = 0;
+    public static final int HARDCORE = 1;
+    public static final int SOFTCORE = 2;
+
+    public static final int LADDER = 1;
+    public static final int NON_LADDER = 2;
+
+    // Shared Vars
+    public static int modeHardcore = BOTH;
+    public static int modeLadder = BOTH;
 
     static long startAt;
 
     static PowerManager.WakeLock wl_cpu, wl;
-
-    static Date currentDate;
-    static Handler handler = new Handler();
 
     static AlarmManager alarmManager;
     static PendingIntent pendingIntent;
@@ -71,46 +78,91 @@ public class MainActivity extends AppCompatActivity {
 
     static List<Status> statusList = new ArrayList<>();
 
+    // Vars
+    List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
+    List<String> listLadder = new ArrayList<>(Arrays.asList("Both", "Ladder", "Non-Ladder"));
+
+    // Views
+    Spinner spinnerHardcore;
+    Spinner spinnerLadder;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getDefaults();
         linkViewProperties();
         createNotificationChannel();
         createErrorChannel();
         setActions();
-        startAt = System.currentTimeMillis();
     }
 
-    void setActions() {
-        Intent stopIntent = new Intent(this, MyReceiver.class);
-        stopIntent.setAction("stop");
-        stopIntent.putExtra("stop", "stop");
-        PendingIntent stopPendingIntent =
-                PendingIntent.getBroadcast(this.getApplicationContext(), 234, stopIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        actionStop = new NotificationCompat.Action(null, "stop", stopPendingIntent);
+    void getDefaults() {
+        SharedPreferences prefs = getSharedPreferences("default", Context.MODE_PRIVATE);
+        modeHardcore = prefs.getInt(PREFS_HARDCORE, BOTH);
+        modeLadder = prefs.getInt(PREFS_LADDER, BOTH);
     }
 
-    static void keepAwake(Context context) {
-        //16 hours
-        long timeInMillis = (System.currentTimeMillis() + 1000L*60L*60L*16L);
-        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
-        boolean isScreenOn = pm.isInteractive();
-        if (!isScreenOn)
-        {
-            wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,"MyLock:");
-            wl.acquire(timeInMillis);
-            wl_cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyCpuLock:");
+    void linkViewProperties() {
+        findViewById(R.id.btnStart).setOnClickListener(v -> startAlert());
+        findViewById(R.id.btnStop).setOnClickListener(v -> stop());
+        findViewById(R.id.btnDisableDoze).setOnClickListener(v -> turnOffDozeMode());
+        findViewById(R.id.btnD2IO).setOnClickListener(v -> goToD2io());
 
-            wl_cpu.acquire(timeInMillis);
-        }
+        spinnerHardcore = findViewById(R.id.spinnerHardcore);
+        spinnerLadder = findViewById(R.id.spinnerLadder);
+
+        ArrayAdapter<String> hardcoreAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listHardcore);
+        ArrayAdapter<String> ladderAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listLadder);
+
+        spinnerHardcore.setAdapter(hardcoreAdapter);
+        spinnerLadder.setAdapter(ladderAdapter);
+
+        hardcoreAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        ladderAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+
+        spinnerHardcore.setSelection(modeHardcore);
+        spinnerLadder.setSelection(modeLadder);
+
+        spinnerHardcore.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                modeHardcore = position;
+                setDefaults();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
+
+        spinnerLadder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                modeLadder = position;
+                setDefaults();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
+    }
+
+    void setDefaults() {
+        getSharedPreferences("default", Context.MODE_PRIVATE).edit().putInt(PREFS_HARDCORE, modeHardcore).putInt(PREFS_LADDER, modeLadder).apply();
+    }
+
+    public void startAlert() {
+        statusList.clear();
+        getData();
     }
 
     public void getData() {
 
+        startAt = System.currentTimeMillis();
         RequestQueue queue = Volley.newRequestQueue(this);
+        String url = getURL();
 
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, "https://diablo2.io/dclone_api.php?hc=2&ladder=2",
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
             response -> {
                 try {
                     Long stamp = System.currentTimeMillis();
@@ -147,9 +199,52 @@ public class MainActivity extends AppCompatActivity {
         queue.add(stringRequest);
     }
 
-    public void startAlert() {
-        statusList.clear();
-        getData();
+    public static String getURL() {
+        String urlbase = "https://diablo2.io/dclone_api.php";
+        String hardcore = "";
+        String ladder = "";
+        String query = "";
+        String and = "&";
+
+        if (modeHardcore != 0) {
+            hardcore = "hc=" + modeHardcore;
+            query = "?";
+        }
+
+        if (modeLadder != 0) {
+            ladder = "ladder=" + modeLadder;
+            query = "?";
+        }
+
+        if (ladder.isEmpty() || hardcore.isEmpty()) {
+            and = "";
+        }
+
+        return urlbase + query + hardcore + and + ladder;
+    }
+
+    void setActions() {
+        Intent stopIntent = new Intent(this, MyReceiver.class);
+        stopIntent.setAction("stop");
+        stopIntent.putExtra("stop", "stop");
+        PendingIntent stopPendingIntent =
+                PendingIntent.getBroadcast(this.getApplicationContext(), 234, stopIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        actionStop = new NotificationCompat.Action(null, "stop", stopPendingIntent);
+    }
+
+    static void keepAwake(Context context) {
+        //16 hours
+        long timeInMillis = (System.currentTimeMillis() + 1000L*60L*60L*16L);
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        boolean isScreenOn = pm.isInteractive();
+        if (!isScreenOn)
+        {
+            wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,"MyLock:");
+            wl.acquire(timeInMillis);
+            wl_cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyCpuLock:");
+
+            wl_cpu.acquire(timeInMillis);
+        }
     }
 
     void showError(Context context, Throwable e) {
@@ -178,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
         return notificationCompat;
     }
 
-    public void stop(View view) {
+    void stop() {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
         if (MainActivity.alarmManager != null) {
             MainActivity.alarmManager.cancel(pendingIntent);
@@ -197,30 +292,19 @@ public class MainActivity extends AppCompatActivity {
         mediaPlayer.start();
     }
 
-    void turnOffDozeMode(Context context){
+    void turnOffDozeMode(){
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Intent intent = new Intent();
-            String packageName = context.getPackageName();
-            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            String packageName = getPackageName();
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             if (pm.isIgnoringBatteryOptimizations(packageName))
                 intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
             else {
                 intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
                 intent.setData(Uri.parse("package:" + packageName));
             }
-            context.startActivity(intent);
+            startActivity(intent);
         }
-    }
-
-    void linkViewProperties() {
-        btnStart = findViewById(R.id.btnStart);
-        findViewById(R.id.btnDisableDoze);
-
-        btnStart.setOnClickListener(v -> startAlert());
-
-        findViewById(R.id.btnStop).setOnClickListener(v -> stop(new View(this)));
-        findViewById(R.id.btnDisableDoze).setOnClickListener(v -> turnOffDozeMode(this));
-        findViewById(R.id.btnD2IO).setOnClickListener(v -> goToD2io());
     }
 
     void goToD2io() {
