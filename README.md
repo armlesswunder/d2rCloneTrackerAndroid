@@ -4,6 +4,15 @@
 
 Teebling: For making the endpoint the app uses to pull dclone progress data and for the amazing site diablo.io!!
 
+## Contact
+abw4v.dev@gmail.com
+
+## Future plans
+
+1) Be able to choose Hardcore and Ladder
+2) Improve UI
+3) Bug fixes and performance improvements
+
 ## FAQ
 
 # What is this app?
