@@ -1,5 +1,6 @@
 package com.abw4v.d2clonetracker;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.app.NotificationCompat;
@@ -51,8 +52,10 @@ public class MainActivity extends AppCompatActivity {
 
     static final String PREFS_HARDCORE = "hardcore";
     static final String PREFS_LADDER = "ladder";
+    static final String PREFS_DOZE = "dozeMode";
 
     static final String d2rURL = "https://diablo2.io/";
+    static final String faqURL = "https://github.com/armlesswunder/d2rCloneTrackerAndroid#faq";
     static final boolean debug = false;
 
     public static final int BOTH = 0;
@@ -86,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
     Spinner spinnerHardcore;
     Spinner spinnerLadder;
 
+    boolean dozeMode = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,12 +106,14 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("default", Context.MODE_PRIVATE);
         modeHardcore = prefs.getInt(PREFS_HARDCORE, BOTH);
         modeLadder = prefs.getInt(PREFS_LADDER, BOTH);
+        dozeMode = prefs.getBoolean(PREFS_DOZE, true);
     }
 
     void linkViewProperties() {
         findViewById(R.id.btnStart).setOnClickListener(v -> startAlert());
         findViewById(R.id.btnStop).setOnClickListener(v -> stop());
         findViewById(R.id.btnDisableDoze).setOnClickListener(v -> turnOffDozeMode());
+        findViewById(R.id.btnFAQ).setOnClickListener(v -> btnFAQPressed());
         findViewById(R.id.btnD2IO).setOnClickListener(v -> goToD2io());
 
         spinnerHardcore = findViewById(R.id.spinnerHardcore);
@@ -152,8 +159,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startAlert() {
-        statusList.clear();
-        getData();
+
+        if (dozeMode) {
+            warnDoze();
+        } else {
+            statusList.clear();
+            getData();
+        }
+    }
+
+    void warnDoze() {
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+        alertBuilder.setCancelable(false);
+        alertBuilder.setTitle("WARNING");
+        alertBuilder.setMessage("Please ensure doze mode is disabled to ensure proper functionality. Failure to do so will result in random errors and crashes. Please read the FAQ for more details");
+        alertBuilder.setPositiveButton("OK", (a, b) -> {
+            SharedPreferences prefs = getSharedPreferences("default", Context.MODE_PRIVATE);
+            dozeMode = false;
+            prefs.edit().putBoolean(PREFS_DOZE, false).apply();
+        });
+        alertBuilder.show();
     }
 
     public void getData() {
@@ -310,6 +335,12 @@ public class MainActivity extends AppCompatActivity {
     void goToD2io() {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(d2rURL));
+        startActivity(intent);
+    }
+
+    void btnFAQPressed() {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(faqURL));
         startActivity(intent);
     }
 

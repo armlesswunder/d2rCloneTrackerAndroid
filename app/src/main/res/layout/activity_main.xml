@@ -91,12 +91,25 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
         android:background="@color/purple_500"
-        android:textColor="@color/white"
         android:text="Disable Doze"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toTopOf="@+id/textView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnFAQ"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:background="@color/purple_500"
+        android:text="FAQ"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="@+id/btnDisableDoze"
+        app:layout_constraintStart_toEndOf="@+id/btnDisableDoze"
+        app:layout_constraintTop_toTopOf="@+id/btnDisableDoze" />
 
 
     <TextView
