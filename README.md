@@ -1,5 +1,11 @@
 # Diablo 2 Resurrected Clone Tracker for Android
 
+## Credits
+
+Teebling: For making the endpoint the app uses to pull dclone progress data and for the amazing site diablo.io!!
+
+## FAQ
+
 # What is this app?
 
 It allows you to get notifications whenever the diablo clone event in any region makes progress. 
