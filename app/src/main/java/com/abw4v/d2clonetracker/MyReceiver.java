@@ -1,6 +1,7 @@
 package com.abw4v.d2clonetracker;
 
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -97,7 +98,7 @@ public class MyReceiver extends BroadcastReceiver {
     String getMsg() {
         List<Status> tempList = new ArrayList<>(statusList);
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-            tempList.sort((o1, o2) -> (o1.region - o2.region));
+            tempList.sort((o1, o2) -> (o2.status - o1.status));
         }
         StringBuilder temp = new StringBuilder();
         for (Status status: tempList) {
@@ -190,7 +191,38 @@ public class MyReceiver extends BroadcastReceiver {
                 .addAction(actionStop)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
+        int highestStatus = getHighestStatus();
+        if (highestStatus == 3) {
+            //flash blue
+            notificationCompat
+                .setDefaults(Notification.DEFAULT_SOUND | Notification.FLAG_SHOW_LIGHTS)
+                .setLights(0xff0000ff, 500, 500);
+        } else if (highestStatus == 4) {
+            //flash green
+            notificationCompat
+                    .setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND | Notification.FLAG_SHOW_LIGHTS)
+                    .setLights(0xff00ff00, 500, 300);
+        } else if (highestStatus == 5) {
+            //flash orange
+            notificationCompat
+                    .setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND | Notification.FLAG_SHOW_LIGHTS)
+                    .setLights(0xffFFA500, 100, 100);
+        } else if (highestStatus == 6) {
+            //flash red
+            notificationCompat
+                    .setDefaults(Notification.FLAG_SHOW_LIGHTS)
+                    .setLights(0xffff0000, 1000, 1000);
+        }
         return notificationCompat;
+    }
+
+    int getHighestStatus() {
+        int highestStatus = 0;
+        for (Status status: statusList) {
+            if (status.status > highestStatus) highestStatus = status.status;
+        }
+        return highestStatus;
+
     }
 
     boolean updatedStatus() {

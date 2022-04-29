@@ -29,19 +29,19 @@ public class Status {
     }
 
     String getRegionDisplay() {
-        if (region == 1) return "Americas " + getHardcore() + "/" + getLadder();
-        else if (region == 2) return "Europe " + getHardcore() + "/" + getLadder();
-        else return "Asia " + getHardcore() + "/" + getLadder();
+        if (region == 1) return "Americas" + getHardcore() + getLadder();
+        else if (region == 2) return "Europe" + getHardcore() + getLadder();
+        else return "Asia" + getHardcore() + getLadder();
     }
 
     String getHardcore() {
-        if (hardcore == 1) return "HC";
-        else return "SC";
+        if (hardcore == 1) return "\uD83D\uDC80";
+        else return "";
     }
 
     String getLadder() {
-        if (ladder == 1) return "L";
-        else return "NL";
+        if (ladder == 1) return "\uD83E\uDE9C";
+        else return "";
     }
 
     boolean isUpdatedStatus() {
