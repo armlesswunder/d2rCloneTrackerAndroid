@@ -1,4 +1,6 @@
 # Diablo 2 Resurrected Clone Tracker for Android
+Play store (Comming soon!): https://play.google.com/store/apps/details?id=com.abw4v.d2clonetracker
+Download here: https://github.com/armlesswunder/d2rCloneTrackerAndroid/releases
 
 # Credits
 
@@ -9,9 +11,8 @@ abw4v.dev@gmail.com
 
 # Future plans
 
-1) Be able to choose Hardcore and Ladder
-2) Improve UI
-3) Bug fixes and performance improvements
+1) Improve UI
+2) Bug fixes and performance improvements
 
 # FAQ
 
@@ -48,14 +49,9 @@ This is a complicated issue which can be solved with a few simple steps:
 
 2) Diablo2.io backend may be down. This is where I get my data, so just be patient as it comes back up.
 
-## The app is wrong, it says x/6 status when really the status is y/6
+## The app is wrong, it says X/6 status when really the status is Y/6
 
 Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
 
-## How do I track progress for Hardcore and/or Ladder
-
-Be patient. I'm working on it.
-
 ## Why isn't this app on Play Store?
-
-Because its in beta. I'll release it on playstore once its feature complete.
+It was submitted to the app store recently and is pending publication. Google reviews all apps before publishing. It could take up to a week before it appears reliably in Play Store. For now just go to releases and download apk to install on your device.
