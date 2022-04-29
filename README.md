@@ -15,6 +15,7 @@ abw4v.dev@gmail.com
 
 1) Improve UI
 2) Bug fixes and performance improvements
+3) Custom icon (Feel free to help with this one :D)
 
 # FAQ
 
