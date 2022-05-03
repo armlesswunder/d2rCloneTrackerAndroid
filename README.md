@@ -1,6 +1,6 @@
 # Diablo 2 Resurrected Clone Tracker for Android
 
-Play store (Comming soon!): https://play.google.com/store/apps/details?id=com.abw4v.d2clonetracker
+Play store: https://play.google.com/store/apps/details?id=com.abw4v.d2clonetracker
 
 Download here: https://github.com/armlesswunder/d2rCloneTrackerAndroid/releases
 
@@ -38,9 +38,9 @@ This is a complicated issue which can be solved with a few simple steps:
 
 2) Leave the app open in the background (don't close the app)
 
-3) Connect your phone to a charger (This step is probably not necessary unless you have a bad phone / battery)
+3) (Optional) Connect your phone to a charger (This step is probably not necessary unless you have a bad phone / battery)
 
-4) Ensure Network connection (My app can't fix your poor network conditions)
+4) (Probably Optional) Ensure Network connection (My app can't fix your poor network conditions)
 
 ## Why all these steps?
 
@@ -55,6 +55,3 @@ This is a complicated issue which can be solved with a few simple steps:
 ## The app is wrong, it says X/6 status when really the status is Y/6
 
 Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
-
-## Why isn't this app on Play Store?
-It was submitted to the app store recently and is pending publication. Google reviews all apps before publishing. It could take up to a week before it appears reliably in Play Store. For now just go to releases and download apk to install on your device.
