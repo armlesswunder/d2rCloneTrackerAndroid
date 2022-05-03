@@ -54,7 +54,7 @@ public class MyReceiver extends BroadcastReceiver {
                             Status newStatus = new Status(json);
                             Status oldStatus = getOldStatus(newStatus);
                             oldStatus.status = newStatus.status;
-                            oldStatus.prevStamp.add(0, stamp);
+                            //oldStatus.prevStamp.add(0, stamp);
                             oldStatus.prevStatus.add(0, oldStatus.status);
                             setStatus(oldStatus);
                         }
@@ -86,6 +86,10 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
     void setStatus(Status oldStatus) {
+        if (oldStatus.prevStatus.size() > 5) {
+            oldStatus.prevStatus.remove(5);
+        }
+
         for (int i = 0; i < statusList.size(); i++) {
             Status status = statusList.get(i);
             if (status.id.equals(oldStatus.id)) {
@@ -120,10 +124,10 @@ public class MyReceiver extends BroadcastReceiver {
 
         String action = intent.getAction();
         if (action != null && action.equals("stop")) {
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-            MainActivity.alarmManager.cancel(pendingIntent);
-            notificationManager.cancelAll();
             try {
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+                notificationManager.cancelAll();
+                MainActivity.alarmManager.cancel(pendingIntent);
                 MainActivity.wl_cpu.release();
                 MainActivity.wl.release();
             } catch (Throwable e) {
