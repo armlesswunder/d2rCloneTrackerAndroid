@@ -1,12 +1,14 @@
 package com.abw4v.d2clonetracker;
 
 import android.app.AlarmManager;
+import android.app.Application;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.PowerManager;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Toast;
@@ -31,23 +33,42 @@ import java.util.List;
 import static android.content.Context.ALARM_SERVICE;
 import static com.abw4v.d2clonetracker.MainActivity.CHANNEL_ID;
 import static com.abw4v.d2clonetracker.MainActivity.ERROR_CHANNEL_ID;
-import static com.abw4v.d2clonetracker.MainActivity.actionStop;
-import static com.abw4v.d2clonetracker.MainActivity.pendingIntent;
-import static com.abw4v.d2clonetracker.MainActivity.startAt;
-import static com.abw4v.d2clonetracker.MainActivity.statusList;
 
 public class MyReceiver extends BroadcastReceiver {
+    static boolean appDestroyed = false;
+
+    public static long startAt;
+
+    static PowerManager.WakeLock wl_cpu, wl;
+
+    static AlarmManager alarmManager;
+    static PendingIntent pendingIntent;
+
+    static NotificationCompat.Action actionStop;
+
+    static List<Status> statusList = new ArrayList<>();
 
     int retries = 0;
 
     public void getData(Context context) {
+        if (appDestroyed) {
+            try {
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context.getApplicationContext());
+                notificationManager.cancelAll();
+                alarmManager.cancel(pendingIntent);
+                wl_cpu.release();
+                wl.release();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+            return;
+        }
 
         RequestQueue queue = Volley.newRequestQueue(context);
 
         StringRequest stringRequest = new StringRequest(Request.Method.GET, MainActivity.getURL(),
                 response -> {
                     try {
-                        Long stamp = System.currentTimeMillis();
                         JSONArray jArr = new JSONArray(response);
                         for (int i = 0; i < jArr.length(); i++) {
                             JSONObject json = jArr.getJSONObject(i);
@@ -99,7 +120,7 @@ public class MyReceiver extends BroadcastReceiver {
         }
     }
 
-    String getMsg() {
+    String getMsg() throws Throwable {
         List<Status> tempList = new ArrayList<>(statusList);
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             tempList.sort((o1, o2) -> (o2.status - o1.status));
@@ -108,7 +129,11 @@ public class MyReceiver extends BroadcastReceiver {
         for (Status status: tempList) {
             temp.append(status.getMsg());
         }
-        return temp.toString();
+        String out = temp.toString();
+        if (out.isEmpty()) {
+            throw new Throwable("Fatal error: App was closed by user or OS, tracker will stop now.");
+        }
+        return out;
     }
 
     Status getOldStatus(Status newStatus) {
@@ -127,9 +152,9 @@ public class MyReceiver extends BroadcastReceiver {
             try {
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                 notificationManager.cancelAll();
-                MainActivity.alarmManager.cancel(pendingIntent);
-                MainActivity.wl_cpu.release();
-                MainActivity.wl.release();
+                alarmManager.cancel(pendingIntent);
+                wl_cpu.release();
+                wl.release();
             } catch (Throwable e) {
                 e.printStackTrace();
             }
@@ -139,8 +164,8 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
     void appNotification(Context context) {
-        String regularMsg = getMsg();
-        Toast.makeText(context, regularMsg, Toast.LENGTH_LONG).show();
+        //String regularMsg = getMsg();
+        //Toast.makeText(context, regularMsg, Toast.LENGTH_LONG).show();
         //MainActivity.playAlertSound(context);
     }
 
@@ -175,20 +200,27 @@ public class MyReceiver extends BroadcastReceiver {
                         .bigText(e.getMessage()))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
-                .setSilent(retries < 25)
+                .setSilent(retries == 5 || appDestroyed)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
         return notificationCompat;
     }
 
     NotificationCompat.Builder getNotification(Context context) {
+        String out;
+        try {
+            out = getMsg() + "\nNext fetch: " + convertDate(startAt + getStartOffest());
+        } catch (Throwable e) {
+            appDestroyed = true;
+            return getNotification(context, e);
+        }
 
         NotificationCompat.Builder notificationCompat = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_baseline_storm_24)
                 .setContentTitle("D2R Clone Progress")
-                .setContentText(getMsg() + "\nNext fetch: " + convertDate(startAt + getStartOffest()))
+                .setContentText(out)
                 .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(getMsg() + "\nNext fetch: " + convertDate(startAt + getStartOffest())))
+                        .bigText(out))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setSilent(!updatedStatus())
@@ -226,7 +258,6 @@ public class MyReceiver extends BroadcastReceiver {
             if (status.status > highestStatus) highestStatus = status.status;
         }
         return highestStatus;
-
     }
 
     boolean updatedStatus() {
@@ -238,11 +269,11 @@ public class MyReceiver extends BroadcastReceiver {
 
     public void startAlert(Context context) {
         Intent intent = new Intent(context, MyReceiver.class);
-        pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 234, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-        MainActivity.alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
+        alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         startAt = getStartOffest() + System.currentTimeMillis();
         if (startAt > System.currentTimeMillis()) {
-            MainActivity.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(startAt, pendingIntent), pendingIntent);
+            alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(startAt, pendingIntent), pendingIntent);
         } else {
             Log.d("StartAlert", ": system time: "+System.currentTimeMillis()+" lower than start time: "+startAt);
         }

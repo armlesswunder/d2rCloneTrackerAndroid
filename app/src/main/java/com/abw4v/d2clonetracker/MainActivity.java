@@ -44,6 +44,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import static com.abw4v.d2clonetracker.MyReceiver.alarmManager;
+import static com.abw4v.d2clonetracker.MyReceiver.pendingIntent;
+import static com.abw4v.d2clonetracker.MyReceiver.statusList;
+import static com.abw4v.d2clonetracker.MyReceiver.wl;
+import static com.abw4v.d2clonetracker.MyReceiver.wl_cpu;
+
 public class MainActivity extends AppCompatActivity {
 
     // Constants
@@ -69,17 +75,6 @@ public class MainActivity extends AppCompatActivity {
     // Shared Vars
     public static int modeHardcore = BOTH;
     public static int modeLadder = BOTH;
-
-    static long startAt;
-
-    static PowerManager.WakeLock wl_cpu, wl;
-
-    static AlarmManager alarmManager;
-    static PendingIntent pendingIntent;
-
-    static NotificationCompat.Action actionStop;
-
-    static List<Status> statusList = new ArrayList<>();
 
     // Vars
     List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
@@ -107,6 +102,23 @@ public class MainActivity extends AppCompatActivity {
         modeHardcore = prefs.getInt(PREFS_HARDCORE, BOTH);
         modeLadder = prefs.getInt(PREFS_LADDER, BOTH);
         dozeMode = prefs.getBoolean(PREFS_DOZE, true);
+    }
+
+    @Override
+    protected void onDestroy() {
+        MyReceiver.appDestroyed = true;
+        try {
+            showError(getApplicationContext(), new Throwable("App closed (either implicitly or explicitly), tracker will stop now..."));
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+            notificationManager.cancelAll();
+            alarmManager.cancel(pendingIntent);
+            wl_cpu.release();
+            wl.release();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+
+        super.onDestroy();
     }
 
     void linkViewProperties() {
@@ -183,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void getData() {
 
-        startAt = System.currentTimeMillis();
+        MyReceiver.startAt = System.currentTimeMillis();
         RequestQueue queue = Volley.newRequestQueue(this);
         String url = getURL();
 
@@ -201,10 +213,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                     try {
                         Intent intent = new Intent(this, MyReceiver.class);
-                        pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 234, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                        pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
                         alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 
-                        MainActivity.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(30*1000, pendingIntent), pendingIntent);
+                        MyReceiver.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(30*1000, pendingIntent), pendingIntent);
                         keepAwake(this);
                         //playAlertSound(this);
                     } catch (Throwable e) {
@@ -253,8 +265,8 @@ public class MainActivity extends AppCompatActivity {
         stopIntent.setAction("stop");
         stopIntent.putExtra("stop", "stop");
         PendingIntent stopPendingIntent =
-                PendingIntent.getBroadcast(this.getApplicationContext(), 234, stopIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        actionStop = new NotificationCompat.Action(null, "stop", stopPendingIntent);
+                PendingIntent.getBroadcast(this.getApplicationContext(), 234, stopIntent, PendingIntent.FLAG_IMMUTABLE);
+        MyReceiver.actionStop = new NotificationCompat.Action(null, "stop", stopPendingIntent);
     }
 
     static void keepAwake(Context context) {
@@ -300,13 +312,13 @@ public class MainActivity extends AppCompatActivity {
 
     void stop() {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        if (MainActivity.alarmManager != null) {
-            MainActivity.alarmManager.cancel(pendingIntent);
+        if (MyReceiver.alarmManager != null) {
+            MyReceiver.alarmManager.cancel(pendingIntent);
         }
         notificationManager.cancelAll();
         try {
-            MainActivity.wl_cpu.release();
-            MainActivity.wl.release();
+            wl_cpu.release();
+            wl.release();
         } catch (Throwable e) {
             e.printStackTrace();
         }
