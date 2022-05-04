@@ -27,6 +27,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -84,6 +85,8 @@ public class MainActivity extends AppCompatActivity {
     Spinner spinnerHardcore;
     Spinner spinnerLadder;
 
+    ProgressBar progressBar;
+
     boolean dozeMode = true;
 
     @Override
@@ -122,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void linkViewProperties() {
+        progressBar = findViewById(R.id.progressBar);
+
         findViewById(R.id.btnStart).setOnClickListener(v -> startAlert());
         findViewById(R.id.btnStop).setOnClickListener(v -> stop());
         findViewById(R.id.btnDisableDoze).setOnClickListener(v -> turnOffDozeMode());
@@ -175,6 +180,8 @@ public class MainActivity extends AppCompatActivity {
         if (dozeMode) {
             warnDoze();
         } else {
+            progressBar.setVisibility(View.VISIBLE);
+            MyReceiver.appDestroyed = false;
             statusList.clear();
             getData();
         }
@@ -218,18 +225,22 @@ public class MainActivity extends AppCompatActivity {
 
                         MyReceiver.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(30*1000, pendingIntent), pendingIntent);
                         keepAwake(this);
+                        runOnUiThread(() -> progressBar.setVisibility(View.GONE));
                         //playAlertSound(this);
                     } catch (Throwable e) {
                         e.printStackTrace();
+                        runOnUiThread(() -> progressBar.setVisibility(View.GONE));
                         showError(this, e);
                     }
                 } catch (Throwable e) {
                     e.printStackTrace();
+                    runOnUiThread(() -> progressBar.setVisibility(View.GONE));
                     showError(MainActivity.this, e);
                 }
             }, error -> {
-                getData();
-                showError(MainActivity.this, new Throwable("Network Failure, this could be an issue with your device, or d2.io backend. Trying again..."));
+                //getData();
+                runOnUiThread(() -> progressBar.setVisibility(View.GONE));
+                showError(MainActivity.this, new Throwable("Network Failure, this could be an issue with your device, or d2.io backend. Please try again."));
                 error.printStackTrace();
         });
 

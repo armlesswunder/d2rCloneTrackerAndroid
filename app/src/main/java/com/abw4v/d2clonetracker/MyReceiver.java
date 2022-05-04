@@ -92,7 +92,7 @@ public class MyReceiver extends BroadcastReceiver {
                     if (retries < 5) {
                         error.printStackTrace();
                         getData(context);
-                        showError(context, new Throwable("Network Failure, Trying again..."));
+                        //showError(context, new Throwable("Network Failure, Trying again..."));
                         retries++;
                     } else {
                         error.printStackTrace();
