@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.PowerManager;
 import android.text.format.DateFormat;
@@ -35,6 +36,9 @@ import static com.abw4v.d2clonetracker.MainActivity.CHANNEL_ID;
 import static com.abw4v.d2clonetracker.MainActivity.ERROR_CHANNEL_ID;
 
 public class MyReceiver extends BroadcastReceiver {
+    final static long ERROR_MAJOR_OFFSET = 3*60000; //retry after 3 minutes if major error
+    final static long ERROR_MINOR_OFFSET = 10000; //retry after 10 seconds if minor error
+
     static boolean appDestroyed = false;
 
     public static long startAt;
@@ -48,13 +52,13 @@ public class MyReceiver extends BroadcastReceiver {
 
     static List<Status> statusList = new ArrayList<>();
 
-    int retries = 0;
+    static public int retries = 0;
 
     public void getData(Context context) {
         if (appDestroyed) {
             try {
-                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context.getApplicationContext());
-                notificationManager.cancelAll();
+                //NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context.getApplicationContext());
+                //notificationManager.cancelAll();
                 alarmManager.cancel(pendingIntent);
                 wl_cpu.release();
                 wl.release();
@@ -79,27 +83,32 @@ public class MyReceiver extends BroadcastReceiver {
                             oldStatus.prevStatus.add(0, oldStatus.status);
                             setStatus(oldStatus);
                         }
-                        showNotification(context);
+                        showNotification(context, getStartOffset() + System.currentTimeMillis());
                         //appNotification(context);
-                        startAlert(context);
+                        startAlert(context, getStartOffset() + System.currentTimeMillis());
                         MainActivity.keepAwake(context);
                         retries = 0;
                     } catch (Throwable e) {
                         e.printStackTrace();
+                        startAlert(context, ERROR_MAJOR_OFFSET + System.currentTimeMillis());
+                        MainActivity.keepAwake(context);
+                        retries = 0;
                         showError(context, e);
                     }
                 }, error -> {
                     if (retries < 5) {
                         error.printStackTrace();
-                        getData(context);
+                        startAlert(context, ERROR_MINOR_OFFSET + System.currentTimeMillis());
                         //showError(context, new Throwable("Network Failure, Trying again..."));
                         retries++;
                     } else {
                         error.printStackTrace();
-                        startAlert(context);
+                        startAlert(context, ERROR_MAJOR_OFFSET + System.currentTimeMillis());
                         MainActivity.keepAwake(context);
                         retries = 0;
-                        showError(context, new Throwable("Network Failure, Max retries (5) exceeded! There is may be an issue with your connection, battery optimization (doze mode), and/or diablo2.io server."));
+                        if (MainActivity.showErrorNetwork) {
+                            showError(context, new Throwable("Network Failure: \n\nMax retries (5) exceeded, will try again in 3 minutes \n\nThere may be an issue with your connection, battery optimization (doze mode), and/or diablo2.io server."));
+                        }
                     }
         });
 
@@ -120,9 +129,23 @@ public class MyReceiver extends BroadcastReceiver {
         }
     }
 
-    String getMsg() throws Throwable {
+    static List<Status> getStatusList() {
         List<Status> tempList = new ArrayList<>(statusList);
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+
+        if (MainActivity.modeRegion != 0) {
+            List<Status> tempList2 = new ArrayList<>();
+            for (Status status: tempList) {
+                if (MainActivity.modeRegion == status.region) tempList2.add(status);
+            }
+            tempList = new ArrayList<>(tempList2);
+        }
+        return tempList;
+    }
+
+    static String getMsg() throws Throwable {
+        List<Status> tempList = getStatusList();
+
+        if (tempList.size() > 1 && Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             tempList.sort((o1, o2) -> (o2.status - o1.status));
         }
         StringBuilder temp = new StringBuilder();
@@ -169,17 +192,17 @@ public class MyReceiver extends BroadcastReceiver {
         //MainActivity.playAlertSound(context);
     }
 
-    void showNotification(Context context) {
+    static void showNotification(Context context, long startAt) {
         try {
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-            NotificationCompat.Builder builder = getNotification(context);
+            NotificationCompat.Builder builder = getNotification(context, startAt);
             notificationManager.notify(0, builder.build());
         } catch(Throwable e) {
             e.printStackTrace();
         }
     }
 
-    void showError(Context context, Throwable e) {
+    static void showError(Context context, Throwable e) {
         try {
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             NotificationCompat.Builder builder = getNotification(context, e);
@@ -190,7 +213,7 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
 
-    NotificationCompat.Builder getNotification(Context context, Throwable e) {
+    static NotificationCompat.Builder getNotification(Context context, Throwable e) {
 
         NotificationCompat.Builder notificationCompat = new NotificationCompat.Builder(context, ERROR_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_baseline_storm_24)
@@ -206,10 +229,10 @@ public class MyReceiver extends BroadcastReceiver {
         return notificationCompat;
     }
 
-    NotificationCompat.Builder getNotification(Context context) {
+    static NotificationCompat.Builder getNotification(Context context, long startAt) {
         String out;
         try {
-            out = getMsg() + "\nNext fetch: " + convertDate(startAt + getStartOffest());
+            out = getMsg() + "\nNext fetch: " + convertDate(startAt);
         } catch (Throwable e) {
             appDestroyed = true;
             return getNotification(context, e);
@@ -228,50 +251,43 @@ public class MyReceiver extends BroadcastReceiver {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
         int highestStatus = getHighestStatus();
-        if (highestStatus == 3) {
-            //flash blue
-            notificationCompat
-                .setDefaults(Notification.DEFAULT_SOUND | Notification.FLAG_SHOW_LIGHTS)
-                .setLights(0xff0000ff, 500, 500);
-        } else if (highestStatus == 4) {
-            //flash green
-            notificationCompat
-                    .setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND | Notification.FLAG_SHOW_LIGHTS)
-                    .setLights(0xff00ff00, 500, 300);
-        } else if (highestStatus == 5) {
-            //flash orange
-            notificationCompat
-                    .setDefaults(Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND | Notification.FLAG_SHOW_LIGHTS)
-                    .setLights(0xffFFA500, 100, 100);
-        } else if (highestStatus == 6) {
-            //flash red
-            notificationCompat
-                    .setDefaults(Notification.FLAG_SHOW_LIGHTS)
-                    .setLights(0xffff0000, 1000, 1000);
+        if (updatedStatus()) {
+            if (highestStatus == 5) {
+                //flash orange
+                notificationCompat
+                        .setDefaults(Notification.DEFAULT_VIBRATE | Notification.FLAG_SHOW_LIGHTS)
+                        .setVibrate(new long[] { 1000, 1000 })
+                        .setLights(Color.YELLOW, 1000, 1000);
+            } else if (highestStatus == 6) {
+                //flash red
+                notificationCompat
+                        .setDefaults(Notification.FLAG_SHOW_LIGHTS)
+                        .setVibrate(new long[] { 1000, 1000, 1000 })
+                        .setLights(Color.RED, 1000, 1000);
+            }
         }
         return notificationCompat;
     }
 
-    int getHighestStatus() {
+    static int getHighestStatus() {
         int highestStatus = 0;
-        for (Status status: statusList) {
+        for (Status status: getStatusList()) {
             if (status.status > highestStatus) highestStatus = status.status;
         }
         return highestStatus;
     }
 
-    boolean updatedStatus() {
-        for (Status status: statusList) {
+    static boolean updatedStatus() {
+        for (Status status: getStatusList()) {
             if (status.isUpdatedStatus()) return true;
         }
         return false;
     }
 
-    public void startAlert(Context context) {
+    public void startAlert(Context context, long startAt) {
         Intent intent = new Intent(context, MyReceiver.class);
         pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
         alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        startAt = getStartOffest() + System.currentTimeMillis();
         if (startAt > System.currentTimeMillis()) {
             alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(startAt, pendingIntent), pendingIntent);
         } else {
@@ -281,19 +297,19 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
     // lets do our part not spam the endpoint if not needed!
-    long getStartOffest() {
+    public static long getStartOffset() {
         int maxStatus = 1;
 
-        for (Status status: statusList) {
+        for (Status status: getStatusList()) {
             if (status.status > maxStatus) maxStatus = status.status;
         }
 
-        if (maxStatus == 1) return 2L*60000L; //low alert
-        else if (maxStatus == 2) return 3L*30000L;
-        else if (maxStatus == 3) return 60000L;
-        else if (maxStatus == 4) return 30000L;
-        else if (maxStatus == 5) return 30000L; //high alert
-        else return 3L*60000L; //reset, very low alert
+        if (maxStatus == 1) return 5*60000L; //every 5 minutes
+        else if (maxStatus == 2) return 4*60000L; //every 4 minutes
+        else if (maxStatus == 3) return 3*60000L; //every 3 minutes
+        else if (maxStatus == 4) return 2*60000L; //every 2 minutes
+        else if (maxStatus == 5) return 60000L; //every 1 minute
+        else return 6L*60000L; //every 6 minutes
     }
 
     public static String convertDate(Long dateInMilliseconds) {

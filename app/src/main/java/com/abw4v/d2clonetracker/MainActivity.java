@@ -13,6 +13,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
@@ -29,6 +31,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,7 +62,9 @@ public class MainActivity extends AppCompatActivity {
 
     static final String PREFS_HARDCORE = "hardcore";
     static final String PREFS_LADDER = "ladder";
+    static final String PREFS_REGION = "region";
     static final String PREFS_DOZE = "dozeMode";
+    static final String PREFS_ERROR_NETWORK = "showNetworkErrors";
 
     static final String d2rURL = "https://diablo2.io/";
     static final String faqURL = "https://github.com/armlesswunder/d2rCloneTrackerAndroid#faq";
@@ -76,14 +81,19 @@ public class MainActivity extends AppCompatActivity {
     // Shared Vars
     public static int modeHardcore = BOTH;
     public static int modeLadder = BOTH;
+    public static int modeRegion = BOTH;
+    public static boolean showErrorNetwork = false;
 
     // Vars
+    List<String> listRegion = new ArrayList<>(Arrays.asList("All", "Americas", "Europe", "Asia"));
     List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
     List<String> listLadder = new ArrayList<>(Arrays.asList("Both", "Ladder", "Non-Ladder"));
 
     // Views
     Spinner spinnerHardcore;
     Spinner spinnerLadder;
+    Spinner spinnerRegion;
+    Switch switchErrorNetwork;
 
     ProgressBar progressBar;
 
@@ -104,7 +114,9 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("default", Context.MODE_PRIVATE);
         modeHardcore = prefs.getInt(PREFS_HARDCORE, BOTH);
         modeLadder = prefs.getInt(PREFS_LADDER, BOTH);
+        modeRegion = prefs.getInt(PREFS_REGION, BOTH);
         dozeMode = prefs.getBoolean(PREFS_DOZE, true);
+        showErrorNetwork = prefs.getBoolean(PREFS_ERROR_NETWORK, false);
     }
 
     @Override
@@ -112,8 +124,6 @@ public class MainActivity extends AppCompatActivity {
         MyReceiver.appDestroyed = true;
         try {
             showError(getApplicationContext(), new Throwable("App closed (either implicitly or explicitly), tracker will stop now..."));
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-            notificationManager.cancelAll();
             alarmManager.cancel(pendingIntent);
             wl_cpu.release();
             wl.release();
@@ -133,20 +143,43 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnFAQ).setOnClickListener(v -> btnFAQPressed());
         findViewById(R.id.btnD2IO).setOnClickListener(v -> goToD2io());
 
+        TextView lblVersion = findViewById(R.id.lblVersion);
+        PackageInfo pInfo = null;
+        try {
+            pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            String versionLocal = pInfo.versionName;
+            lblVersion.setText("V " + versionLocal);
+        } catch (PackageManager.NameNotFoundException e) {
+            lblVersion.setText("V (?)");
+            e.printStackTrace();
+        }
+
+        switchErrorNetwork = findViewById(R.id.switchErrorNetwork);
+        switchErrorNetwork.setChecked(showErrorNetwork);
+        switchErrorNetwork.setOnClickListener(v -> {
+            showErrorNetwork = switchErrorNetwork.isChecked();
+            setDefaults();
+        });
+
         spinnerHardcore = findViewById(R.id.spinnerHardcore);
         spinnerLadder = findViewById(R.id.spinnerLadder);
+        spinnerRegion = findViewById(R.id.spinnerRegion);
 
         ArrayAdapter<String> hardcoreAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listHardcore);
         ArrayAdapter<String> ladderAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listLadder);
+        ArrayAdapter<String> regionAdapter = new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, listRegion);
 
         spinnerHardcore.setAdapter(hardcoreAdapter);
         spinnerLadder.setAdapter(ladderAdapter);
+        spinnerRegion.setAdapter(regionAdapter);
 
         hardcoreAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
         ladderAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
+        regionAdapter.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
 
         spinnerHardcore.setSelection(modeHardcore);
         spinnerLadder.setSelection(modeLadder);
+        spinnerRegion.setSelection(modeRegion);
 
         spinnerHardcore.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -169,10 +202,26 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onNothingSelected(AdapterView<?> parent) { }
         });
+
+        spinnerRegion.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                modeRegion = position;
+                setDefaults();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
     }
 
     void setDefaults() {
-        getSharedPreferences("default", Context.MODE_PRIVATE).edit().putInt(PREFS_HARDCORE, modeHardcore).putInt(PREFS_LADDER, modeLadder).apply();
+        getSharedPreferences("default", Context.MODE_PRIVATE).edit()
+                .putInt(PREFS_HARDCORE, modeHardcore)
+                .putInt(PREFS_LADDER, modeLadder)
+                .putInt(PREFS_REGION, modeRegion)
+                .putBoolean(PREFS_ERROR_NETWORK, showErrorNetwork)
+                .apply();
     }
 
     public void startAlert() {
@@ -209,29 +258,24 @@ public class MainActivity extends AppCompatActivity {
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
             response -> {
                 try {
-                    Long stamp = System.currentTimeMillis();
+                    //Long stamp = System.currentTimeMillis();
                     JSONArray jArr = new JSONArray(response);
                     for (int i = 0; i < jArr.length(); i++) {
                         JSONObject json = jArr.getJSONObject(i);
                         Status newStatus = new Status(json);
-                        newStatus.prevStamp.add(0, stamp);
-                        newStatus.prevStatus.add(0, newStatus.region);
+                        //newStatus.prevStamp.add(0, stamp);
+                        newStatus.prevStatus.add(0, newStatus.status);
                         statusList.add(newStatus);
                     }
-                    try {
-                        Intent intent = new Intent(this, MyReceiver.class);
-                        pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
-                        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+                    Intent intent = new Intent(this, MyReceiver.class);
+                    pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
+                    alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 
-                        MyReceiver.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(30*1000, pendingIntent), pendingIntent);
-                        keepAwake(this);
-                        runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                        //playAlertSound(this);
-                    } catch (Throwable e) {
-                        e.printStackTrace();
-                        runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                        showError(this, e);
-                    }
+                    MyReceiver.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(System.currentTimeMillis() + MyReceiver.getStartOffset(), pendingIntent), pendingIntent);
+                    keepAwake(this);
+                    runOnUiThread(() -> progressBar.setVisibility(View.GONE));
+                    MyReceiver.showNotification(MainActivity.this, System.currentTimeMillis() + MyReceiver.getStartOffset());
+                    //playAlertSound(this);
                 } catch (Throwable e) {
                     e.printStackTrace();
                     runOnUiThread(() -> progressBar.setVisibility(View.GONE));
