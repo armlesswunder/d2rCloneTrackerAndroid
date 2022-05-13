@@ -65,7 +65,7 @@ Send me an email with what exactly needs to be better. I am fine with making cha
 
 OR
 
-Fix it yourself; you have the code here. Just let me know when your done and I will review your changes, test, and accept your contribution if it is good.
+Fix it yourself; you have the code here. 
 
 ## Closing Statement
 I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
