@@ -57,11 +57,15 @@ Also, I simply haven't put forth any effort into making the app work even when c
 
 Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
 
-## I hate your app, and I hate you. 1 Star. I hope you have a crappy life.
+## I hate your app. 1 Star.
 
-Right back 'atcha (jk (kinda))
+My app? Yeah I did make it, but who's to say I should improve it for you? After all, it is free, it does exactly what I want it to, and I already did all the heavy lifting for you! I even added features that don't necessarily benefit me in any way, just for the sake of making my dream a reality for not only myself, but for all of you too... (>.>)
 
-The great news for you is that I am OPEN to contributions on this project! What this means for you is that you no longer have to live an angry life bc not everything works the way you want to, YOU can make a difference! You can be a positive person in the world instead of just another whiner! Isn't that great? Please reach out to me if you wish to improve the app in some way. I will test your app for a period of time and review the changes. if I accept, I will add you to the credits. So far, the credits include... Me, So get a move on!
+I have GREAT NEWS for you regardless: I am OPEN to contributions on this project! What this means for you is that you no longer have to live an angry life bc not everything handed to you works the exact way you want to, YOU can make a difference! You can be a positive person in the world instead of just another whiner! Isn't that great?? 
+
+***Rant over***
+
+Please reach out to me if you wish to improve the app in some way. I will test your app for a period of time and review the changes. If I accept, I will add you to the credits. So far, the credits include... Me, So get a move on!
 
 ## Closing Statement
 I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
