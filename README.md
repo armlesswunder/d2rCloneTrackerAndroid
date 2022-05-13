@@ -59,7 +59,13 @@ Thats because this app relies on human input to keep track of statuses. If someo
 
 ## I'm not happy with this app. It needs to do better
 
-If you want the app to be improved in any way, just reach out to me and MAYBE I'll take your request. If I don't take your request, saddle up and make the change yourself! I'm open to you being a positive influence on this app, but I don't care for complaining, especially when you didn't read my FAQ in the first place.
+<-*-> IF YOU DIDN'T READ THE FAQ, GO READ IT FIRST <-*->
+
+Send me an email with what exactly needs to be better. I am fine with making changes if it make the app better in a practical way. 
+
+OR
+
+Fix it yourself; you have the code here. Just let me know when your done and I will review your changes, test, and accept your contribution if it is good.
 
 ## Closing Statement
 I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
