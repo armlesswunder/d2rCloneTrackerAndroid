@@ -232,7 +232,7 @@ public class MyReceiver extends BroadcastReceiver {
     static NotificationCompat.Builder getNotification(Context context, long startAt) {
         String out;
         try {
-            out = getMsg() + "\nNext fetch: " + convertDate(startAt);
+            out = getMsg() + "\nNext fetch: " + convertDate(startAt, context);
         } catch (Throwable e) {
             appDestroyed = true;
             return getNotification(context, e);
@@ -312,7 +312,11 @@ public class MyReceiver extends BroadcastReceiver {
         else return 6L*60000L; //every 6 minutes
     }
 
-    public static String convertDate(Long dateInMilliseconds) {
-        return DateFormat.format("hh:mm:ss", dateInMilliseconds).toString();
+    public static String convertDate(Long dateInMilliseconds, Context context) {
+        if (!DateFormat.is24HourFormat(context)) {
+            return DateFormat.format("h:mm:ss a", dateInMilliseconds).toString();
+        } else {
+            return DateFormat.format("HH:mm:ss", dateInMilliseconds).toString();
+        }
     }
 }
