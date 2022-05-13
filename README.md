@@ -43,8 +43,9 @@ This is a complicated issue which can be solved with a few simple steps:
 4) (Probably Optional) Ensure Network connection (My app can't fix your poor network conditions)
 
 ## Why all these steps?
+Android OS has a concept of "battery optimization" at the expense of the app. What this means is that Android has no respect for my app's desire to function after a period of time deemed as "acceptable to kill part of or an entire app running in the background." Most of the time this feature is great as it saves your battery and keeps obnoxious apps from using up your precious computational resources, but in the case of this app, it sucks. I'll be investigating better avenues of keeping the app alive in the future.
 
-1) Android OS has a concept of "battery optimization" at the expense of the app. What this means is that Android has no respect for my app's desire to function after a period of time deemed as "acceptable to kill part of or an entire app running in the background." Most of the time this feature is great as it saves your battery and keeps obnoxious apps from using up your precious computational resources, but in the case of this app, it sucks. I'll be investigating better avenues of keeping the app alive in the future.
+Also, I simply haven't put forth any effort into making the app work even when closed. Seems like a lot of work for practically no reward... So yeah, just keep it open :)
 
 ## Okay, I followed your steps and the app is still broke. HELP!!
 
@@ -55,3 +56,14 @@ This is a complicated issue which can be solved with a few simple steps:
 ## The app is wrong, it says X/6 status when really the status is Y/6
 
 Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
+
+## I hate your app, and I hate you. 1 Star. I hope you have a crappy life.
+
+Right back 'atcha (jk (kinda))
+
+The great news for you is that I am OPEN to contributions on this project! What this means for you is that you no longer have to live an angry life bc not everything works the way you want to, YOU can make a difference! You can be a positive person in the world instead of just another whiner! Isn't that great? Please reach out to me if you wish to improve the app in some way. I will test your app for a period of time and review the changes. if I accept, I will add you to the credits. So far, the credits include... Me, So get a move on!
+
+## Closing Statement
+I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
+
+So far, I've used it to not only kill my first DClone, but to kill 3 in less than two weeks! I hope you find similar fortune!
