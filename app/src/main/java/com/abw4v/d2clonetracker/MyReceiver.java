@@ -54,6 +54,8 @@ public class MyReceiver extends BroadcastReceiver {
 
     static public int retries = 0;
 
+    RequestQueue queue;
+
     public void getData(Context context) {
         if (appDestroyed) {
             try {
@@ -68,7 +70,10 @@ public class MyReceiver extends BroadcastReceiver {
             return;
         }
 
-        RequestQueue queue = Volley.newRequestQueue(context);
+        // TODO see if this works
+        if (queue == null) {
+            queue = Volley.newRequestQueue(context);
+        }
 
         StringRequest stringRequest = new StringRequest(Request.Method.GET, MainActivity.getURL(),
                 response -> {
