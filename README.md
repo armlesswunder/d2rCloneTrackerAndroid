@@ -64,4 +64,4 @@ If you want the app to be improved in any way, just reach out to me and MAYBE I'
 ## Closing Statement
 I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
 
-So far, I've used it to not only kill my first DClone, but to kill 3 in less than two weeks! I hope you find similar fortune!
+So far, I've used it to not only kill my first DClone, but to kill 4 in two weeks! I hope you find similar fortune!
