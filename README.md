@@ -32,24 +32,11 @@ Start the app and press the start button.
 
 ## My notifications stop or I get an error after a while
 
-This is a complicated issue which can be solved with a few simple steps:
-
-1) Disable doze mode for the app.
-
-2) Leave the app open in the background (don't close the app)
-
-3) (Optional) Connect your phone to a charger (This step is probably not necessary unless you have a bad phone / battery)
-
-4) (Probably Optional) Ensure Network connection (My app can't fix your poor network conditions)
-
-## Why all these steps?
-Android OS has a concept of "battery optimization" at the expense of the app. What this means is that Android has no respect for my app's desire to function after a period of time deemed as "acceptable to kill part of or an entire app running in the background." Most of the time this feature is great as it saves your battery and keeps obnoxious apps from using up your precious computational resources, but in the case of this app, it sucks. I'll be investigating better avenues of keeping the app alive in the future.
-
-Also, I simply haven't put forth any effort into making the app work even when closed. Seems like a lot of work for practically no reward... So yeah, just keep it open :)
+There is either a Service Outage or you are not connected to a reliable network. Service outages occur frequently and are ususally resolved in less than 30 minutes. Thank you for being patient.
 
 ## Okay, I followed your steps and the app is still broke. HELP!!
 
-1) Close the app and restart it. Follow the steps listed above again and it should work fine. I've tested it running for 16 hours straight without issue using the above steps.
+1) Close the app, open the app, press stop, and then press start. (In this order) I've never had to do this but its always good to mention the ultimate troubleshooting steps. :)
 
 2) Diablo2.io backend may be down. This is where I get my data, so just be patient as it comes back up.
 
@@ -58,8 +45,6 @@ Also, I simply haven't put forth any effort into making the app work even when c
 Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
 
 ## I'm not happy with this app. It needs to do better
-
-<-*-> IF YOU DIDN'T READ THE FAQ, GO READ IT FIRST <-*->
 
 Send me an email with what exactly needs to be better. I am fine with making changes if it make the app better in a practical way. 
 
@@ -70,4 +55,4 @@ Fix it yourself; you have the code here.
 ## Closing Statement
 I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
 
-So far, I've used it to not only kill my first DClone, but to kill 4 in two weeks! I hope you find similar fortune!
+So far, I've used it to not only kill my first DClone, but to kill 5 so far! Good luck, I hope you find similar fortune!
