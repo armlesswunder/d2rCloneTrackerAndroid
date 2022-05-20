@@ -14,7 +14,7 @@ abw4v.dev@gmail.com
 # Future plans
 
 1) Improve UI
-2) Bug fixes and performance improvements
+2) Bug fixes (If any come up)
 3) Custom icon (Feel free to help with this one :D)
 
 # FAQ
