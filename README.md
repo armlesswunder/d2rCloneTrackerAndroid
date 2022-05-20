@@ -44,6 +44,12 @@ There is either a Service Outage or you are not connected to a reliable network.
 
 Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
 
+## Does the app work for Xbox/Switch/PS5/PC?
+
+Yes. Platform does not matter, only SOJ sales for a particular Region (and Mode) determine dclone walk (AFAIK; I only play on PC) 
+
+[Read here for detailed info](https://diablo2.io/forums/new-diablo-clone-mechanics-revealed-t852811.html)
+
 ## I'm not happy with this app. It needs to do better
 
 Send me an email with what exactly needs to be better. I am fine with making changes if it make the app better in a practical way. 
