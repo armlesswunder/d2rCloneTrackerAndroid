@@ -161,20 +161,6 @@
                 app:layout_constraintTop_toTopOf="@+id/textView3" />
 
 
-            <Button
-                android:id="@+id/btnDisableDoze"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="16dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="16dp"
-                android:background="@color/purple_500"
-                android:text="Disable Doze"
-                android:textColor="@color/white"
-                app:layout_constraintEnd_toStartOf="@+id/guideline"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/textView3" />
-
             <TextView
                 android:id="@+id/textView5"
                 android:layout_width="wrap_content"
@@ -184,7 +170,7 @@
                 android:textSize="20sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/btnDisableDoze" />
+                app:layout_constraintTop_toBottomOf="@+id/btnFAQ" />
 
             <Switch
                 android:id="@+id/switchErrorNetwork"
@@ -204,10 +190,9 @@
                 android:background="@color/purple_500"
                 android:text="FAQ"
                 android:textColor="@color/white"
-                app:layout_constraintBottom_toBottomOf="@+id/btnDisableDoze"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="@+id/guideline"
-                app:layout_constraintTop_toTopOf="@+id/btnDisableDoze" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/textView3" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

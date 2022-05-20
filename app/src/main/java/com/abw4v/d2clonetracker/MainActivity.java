@@ -2,16 +2,15 @@ package com.abw4v.d2clonetracker;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatSpinner;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -19,21 +18,16 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -45,21 +39,14 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.abw4v.d2clonetracker.MyReceiver.alarmManager;
-import static com.abw4v.d2clonetracker.MyReceiver.pendingIntent;
-import static com.abw4v.d2clonetracker.MyReceiver.statusList;
-import static com.abw4v.d2clonetracker.MyReceiver.wl;
-import static com.abw4v.d2clonetracker.MyReceiver.wl_cpu;
+import static com.abw4v.d2clonetracker.MyService.*;
 
 public class MainActivity extends AppCompatActivity {
 
     // Constants
-    public static final String CHANNEL_ID ="d2rCloneTrackerProgress";
-    public static final String ERROR_CHANNEL_ID ="d2rCloneTrackerError";
-
     static final String PREFS_HARDCORE = "hardcore";
     static final String PREFS_LADDER = "ladder";
     static final String PREFS_REGION = "region";
@@ -70,34 +57,37 @@ public class MainActivity extends AppCompatActivity {
     static final String faqURL = "https://github.com/armlesswunder/d2rCloneTrackerAndroid#faq";
     static final boolean debug = false;
 
-    public static final int BOTH = 0;
-
-    public static final int HARDCORE = 1;
-    public static final int SOFTCORE = 2;
-
-    public static final int LADDER = 1;
-    public static final int NON_LADDER = 2;
-
-    // Shared Vars
-    public static int modeHardcore = BOTH;
-    public static int modeLadder = BOTH;
-    public static int modeRegion = BOTH;
-    public static boolean showErrorNetwork = false;
-
-    // Vars
-    List<String> listRegion = new ArrayList<>(Arrays.asList("All", "Americas", "Europe", "Asia"));
-    List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
-    List<String> listLadder = new ArrayList<>(Arrays.asList("Both", "Ladder", "Non-Ladder"));
+    final List<String> listRegion = new ArrayList<>(Arrays.asList("All", "Americas", "Europe", "Asia"));
+    final List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
+    final List<String> listLadder = new ArrayList<>(Arrays.asList("Both", "Ladder", "Non-Ladder"));
 
     // Views
     Spinner spinnerHardcore;
     Spinner spinnerLadder;
     Spinner spinnerRegion;
+
     Switch switchErrorNetwork;
 
     ProgressBar progressBar;
 
-    boolean dozeMode = true;
+    // Vars
+    MyService myService;
+
+    AtomicBoolean myServiceBound = new AtomicBoolean(false);
+
+    ServiceConnection myServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            MyService.MyServiceBinder binder = (MyService.MyServiceBinder) service;
+            myService = binder.getService();
+            myServiceBound.set(true);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName className) {
+            myServiceBound.set(false);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,31 +97,30 @@ public class MainActivity extends AppCompatActivity {
         linkViewProperties();
         createNotificationChannel();
         createErrorChannel();
-        setActions();
     }
 
     void getDefaults() {
         SharedPreferences prefs = getSharedPreferences("default", Context.MODE_PRIVATE);
-        modeHardcore = prefs.getInt(PREFS_HARDCORE, BOTH);
-        modeLadder = prefs.getInt(PREFS_LADDER, BOTH);
-        modeRegion = prefs.getInt(PREFS_REGION, BOTH);
-        dozeMode = prefs.getBoolean(PREFS_DOZE, true);
+        modeHardcore = prefs.getInt(PREFS_HARDCORE, 0);
+        modeLadder = prefs.getInt(PREFS_LADDER, 0);
+        modeRegion = prefs.getInt(PREFS_REGION, 0);
         showErrorNetwork = prefs.getBoolean(PREFS_ERROR_NETWORK, false);
     }
 
-    @Override
-    protected void onDestroy() {
-        MyReceiver.appDestroyed = true;
-        try {
-            showError(getApplicationContext(), new Throwable("App closed (either implicitly or explicitly), tracker will stop now..."));
-            alarmManager.cancel(pendingIntent);
-            wl_cpu.release();
-            wl.release();
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
+    // start a service and then bind the app to it, so it can run after the app is closed
+    private void startService(Context context) {
+        Intent intent = new Intent(context, MyService.class);
+        startForegroundService(intent);
+        bindService(intent, myServiceConnection, Context.BIND_AUTO_CREATE);
+    }
 
-        super.onDestroy();
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (myServiceBound.get()) {
+            unbindService(myServiceConnection);
+            myServiceBound.set(false);
+        }
     }
 
     void linkViewProperties() {
@@ -139,7 +128,6 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.btnStart).setOnClickListener(v -> startAlert());
         findViewById(R.id.btnStop).setOnClickListener(v -> stop());
-        findViewById(R.id.btnDisableDoze).setOnClickListener(v -> turnOffDozeMode());
         findViewById(R.id.btnFAQ).setOnClickListener(v -> btnFAQPressed());
         findViewById(R.id.btnD2IO).setOnClickListener(v -> goToD2io());
 
@@ -225,33 +213,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startAlert() {
-
-        if (dozeMode) {
-            warnDoze();
-        } else {
-            progressBar.setVisibility(View.VISIBLE);
-            MyReceiver.appDestroyed = false;
-            statusList.clear();
-            getData();
-        }
-    }
-
-    void warnDoze() {
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-        alertBuilder.setCancelable(false);
-        alertBuilder.setTitle("WARNING");
-        alertBuilder.setMessage("Please ensure doze mode is disabled to ensure proper functionality. Failure to do so will result in random errors and crashes. Please read the FAQ for more details");
-        alertBuilder.setPositiveButton("OK", (a, b) -> {
-            SharedPreferences prefs = getSharedPreferences("default", Context.MODE_PRIVATE);
-            dozeMode = false;
-            prefs.edit().putBoolean(PREFS_DOZE, false).apply();
-        });
-        alertBuilder.show();
+        progressBar.setVisibility(View.VISIBLE);
+        statusList.clear();
+        getData();
     }
 
     public void getData() {
 
-        MyReceiver.startAt = System.currentTimeMillis();
+        MyService.startAt = System.currentTimeMillis();
         RequestQueue queue = Volley.newRequestQueue(this);
         String url = getURL();
 
@@ -267,15 +236,18 @@ public class MainActivity extends AppCompatActivity {
                         newStatus.prevStatus.add(0, newStatus.status);
                         statusList.add(newStatus);
                     }
-                    Intent intent = new Intent(this, MyReceiver.class);
-                    pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
-                    alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+                    //Intent intent = new Intent(this, MyReceiver.class);
+                    //pendingIntent = PendingIntent.getBroadcast(this.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
+                    //alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 
-                    MyReceiver.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(System.currentTimeMillis() + MyReceiver.getStartOffset(), pendingIntent), pendingIntent);
-                    keepAwake(this);
+                    //MyReceiver.alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(System.currentTimeMillis() + MyReceiver.getStartOffset(), pendingIntent), pendingIntent);
+                    //keepAwake(this);
                     runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                    MyReceiver.showNotification(MainActivity.this, System.currentTimeMillis() + MyReceiver.getStartOffset());
+                    //MyReceiver.showNotification(MainActivity.this, System.currentTimeMillis() + MyReceiver.getStartOffset());
                     //playAlertSound(this);
+
+                    //TODO: new imp
+                    startService(MainActivity.this.getApplicationContext());
                 } catch (Throwable e) {
                     e.printStackTrace();
                     runOnUiThread(() -> progressBar.setVisibility(View.GONE));
@@ -284,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
             }, error -> {
                 //getData();
                 runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                showError(MainActivity.this, new Throwable("Network Failure, this could be an issue with your device, or d2.io backend. Please try again."));
+                showError(MainActivity.this, new Throwable(ERROR_MSG_NETWORK));
                 error.printStackTrace();
         });
 
@@ -315,15 +287,6 @@ public class MainActivity extends AppCompatActivity {
         return urlbase + query + hardcore + and + ladder;
     }
 
-    void setActions() {
-        Intent stopIntent = new Intent(this, MyReceiver.class);
-        stopIntent.setAction("stop");
-        stopIntent.putExtra("stop", "stop");
-        PendingIntent stopPendingIntent =
-                PendingIntent.getBroadcast(this.getApplicationContext(), 234, stopIntent, PendingIntent.FLAG_IMMUTABLE);
-        MyReceiver.actionStop = new NotificationCompat.Action(null, "stop", stopPendingIntent);
-    }
-
     static void keepAwake(Context context) {
         //16 hours
         long timeInMillis = (System.currentTimeMillis() + 1000L*60L*60L*16L);
@@ -349,34 +312,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-    NotificationCompat.Builder getNotification(Context context, Throwable e) {
-
-        NotificationCompat.Builder notificationCompat = new NotificationCompat.Builder(context, ERROR_CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle("ERROR")
-                .setContentText(e.getMessage())
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(e.getMessage()))
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_CALL)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-
-        return notificationCompat;
-    }
-
     void stop() {
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        if (MyReceiver.alarmManager != null) {
-            MyReceiver.alarmManager.cancel(pendingIntent);
+        if (myServiceBound.get()) {
+            unbindService(myServiceConnection);
+            myServiceBound.set(false);
         }
-        notificationManager.cancelAll();
-        try {
-            wl_cpu.release();
-            wl.release();
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
+        getApplicationContext().stopService(new Intent(getApplicationContext(), MyService.class));
+        NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(MyService.NOTIFICATION_ID);
     }
 
     static void playAlertSound(Context context) {

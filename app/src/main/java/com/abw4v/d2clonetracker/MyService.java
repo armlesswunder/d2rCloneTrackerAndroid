@@ -1,26 +1,26 @@
 package com.abw4v.d2clonetracker;
 
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
-import android.app.Application;
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
+import android.os.Binder;
 import android.os.Build;
+import android.os.Handler;
+import android.os.IBinder;
 import android.os.PowerManager;
 import android.text.format.DateFormat;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -28,18 +28,23 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
-import static android.content.Context.ALARM_SERVICE;
-import static com.abw4v.d2clonetracker.MainActivity.CHANNEL_ID;
-import static com.abw4v.d2clonetracker.MainActivity.ERROR_CHANNEL_ID;
+import static com.abw4v.d2clonetracker.MainActivity.*;
 
-public class MyReceiver extends BroadcastReceiver {
+public class MyService extends Service{
+
+    static final String TAG = "d2rCloneTrackerService";
+
+    public static final String ERROR_MSG_NETWORK = "Network Failure: \n\nMax retries (5) exceeded, will try again in 3 minutes \n\nThere may be an issue with your connection, battery optimization (doze mode), and/or diablo2.io server.";
+
+    public static final String CHANNEL_ID ="d2rCloneTrackerProgress";
+    public static final String ERROR_CHANNEL_ID ="d2rCloneTrackerError";
+
+    static final int NOTIFICATION_ID = 9527;
+
     final static long ERROR_MAJOR_OFFSET = 3*60000; //retry after 3 minutes if major error
     final static long ERROR_MINOR_OFFSET = 10000; //retry after 10 seconds if minor error
-
-    static boolean appDestroyed = false;
 
     public static long startAt;
 
@@ -48,29 +53,87 @@ public class MyReceiver extends BroadcastReceiver {
     static AlarmManager alarmManager;
     static PendingIntent pendingIntent;
 
-    static NotificationCompat.Action actionStop;
-
     static List<Status> statusList = new ArrayList<>();
 
     static public int retries = 0;
 
+    // Shared Vars
+    public static int modeHardcore = 0;
+    public static int modeLadder = 0;
+    public static int modeRegion = 0;
+
+    public static final int HARDCORE = 1;
+    public static final int SOFTCORE = 2;
+
+    public static final int LADDER = 1;
+    public static final int NON_LADDER = 2;
+
+    public static boolean showErrorNetwork = false;
+
     RequestQueue queue;
 
-    public void getData(Context context) {
-        if (appDestroyed) {
-            try {
-                //NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context.getApplicationContext());
-                //notificationManager.cancelAll();
-                alarmManager.cancel(pendingIntent);
-                wl_cpu.release();
-                wl.release();
-            } catch (Throwable e) {
-                e.printStackTrace();
-            }
-            return;
-        }
+    static Handler handler = new Handler();
+    public Runnable runnable = this::timerTask;
 
-        // TODO see if this works
+    public class MyServiceBinder extends Binder {
+        public MyService getService() {
+            return MyService.this;
+        }
+    }
+
+    PowerManager.WakeLock wakeLock;
+    final IBinder binder = new MyServiceBinder();
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        startForeground(NOTIFICATION_ID, getNotification(getApplicationContext(), System.currentTimeMillis()+getStartOffset()).build());
+        initiateWakeLock();
+        startAlert(getApplicationContext(), getStartOffset());
+        //getData(getApplicationContext());
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return Service.START_REDELIVER_INTENT;
+    }
+
+    @Override
+    public void onDestroy() {
+        handler.removeCallbacks(runnable);
+        super.onDestroy();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    @SuppressLint("WakelockTimeout")
+    void initiateWakeLock() {
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm != null) {
+            // PARTIAL_WAKE_LOCK: Ensures that the CPU is running;
+            // the screen and keyboard backlight will be allowed to go off.
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "D2RService:" + TAG);
+            if (wakeLock != null) {
+                wakeLock.acquire();
+            }
+        } else {
+            Log.e(TAG, "Failed to get an instance of PowerManager");
+        }
+    }
+
+    static void stop(Service service, Runnable runnable) {
+        handler.removeCallbacks(runnable);
+        service.stopForeground(true);
+    }
+
+    void timerTask() {
+        getData(getApplicationContext());
+    }
+
+    public void getData(Context context) {
         if (queue == null) {
             queue = Volley.newRequestQueue(context);
         }
@@ -90,31 +153,29 @@ public class MyReceiver extends BroadcastReceiver {
                         }
                         showNotification(context, getStartOffset() + System.currentTimeMillis());
                         //appNotification(context);
-                        startAlert(context, getStartOffset() + System.currentTimeMillis());
-                        MainActivity.keepAwake(context);
+                        startAlert(context, getStartOffset());
                         retries = 0;
                     } catch (Throwable e) {
                         e.printStackTrace();
-                        startAlert(context, ERROR_MAJOR_OFFSET + System.currentTimeMillis());
-                        MainActivity.keepAwake(context);
+                        startAlert(context, ERROR_MAJOR_OFFSET);
                         retries = 0;
                         showError(context, e);
                     }
                 }, error -> {
-                    if (retries < 5) {
-                        error.printStackTrace();
-                        startAlert(context, ERROR_MINOR_OFFSET + System.currentTimeMillis());
-                        //showError(context, new Throwable("Network Failure, Trying again..."));
-                        retries++;
-                    } else {
-                        error.printStackTrace();
-                        startAlert(context, ERROR_MAJOR_OFFSET + System.currentTimeMillis());
-                        MainActivity.keepAwake(context);
-                        retries = 0;
-                        if (MainActivity.showErrorNetwork) {
-                            showError(context, new Throwable("Network Failure: \n\nMax retries (5) exceeded, will try again in 3 minutes \n\nThere may be an issue with your connection, battery optimization (doze mode), and/or diablo2.io server."));
-                        }
-                    }
+            if (retries < 5) {
+                error.printStackTrace();
+                startAlert(context, ERROR_MINOR_OFFSET);
+                //showError(context, new Throwable("Network Failure, Trying again..."));
+                retries++;
+            } else {
+                error.printStackTrace();
+                startAlert(context, ERROR_MAJOR_OFFSET);
+                //MainActivity.keepAwake(context);
+                retries = 0;
+                if (showErrorNetwork) {
+                    showError(context, new Throwable(ERROR_MSG_NETWORK));
+                }
+            }
         });
 
         queue.add(stringRequest);
@@ -137,10 +198,10 @@ public class MyReceiver extends BroadcastReceiver {
     static List<Status> getStatusList() {
         List<Status> tempList = new ArrayList<>(statusList);
 
-        if (MainActivity.modeRegion != 0) {
+        if (modeRegion != 0) {
             List<Status> tempList2 = new ArrayList<>();
             for (Status status: tempList) {
-                if (MainActivity.modeRegion == status.region) tempList2.add(status);
+                if (modeRegion == status.region) tempList2.add(status);
             }
             tempList = new ArrayList<>(tempList2);
         }
@@ -149,10 +210,8 @@ public class MyReceiver extends BroadcastReceiver {
 
     static String getMsg() throws Throwable {
         List<Status> tempList = getStatusList();
+        tempList.sort((o1, o2) -> (o2.status - o1.status));
 
-        if (tempList.size() > 1 && Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-            tempList.sort((o1, o2) -> (o2.status - o1.status));
-        }
         StringBuilder temp = new StringBuilder();
         for (Status status: tempList) {
             temp.append(status.getMsg());
@@ -171,8 +230,6 @@ public class MyReceiver extends BroadcastReceiver {
         return new Status();
     }
 
-
-    @Override
     public void onReceive(Context context, Intent intent) {
 
         String action = intent.getAction();
@@ -199,9 +256,10 @@ public class MyReceiver extends BroadcastReceiver {
 
     static void showNotification(Context context, long startAt) {
         try {
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            //NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
             NotificationCompat.Builder builder = getNotification(context, startAt);
-            notificationManager.notify(0, builder.build());
+            //notificationManager.notify(0, builder.build());
+            updateNotificationContent(context, builder.build());
         } catch(Throwable e) {
             e.printStackTrace();
         }
@@ -228,7 +286,6 @@ public class MyReceiver extends BroadcastReceiver {
                         .bigText(e.getMessage()))
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
-                .setSilent(retries == 5 || appDestroyed)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
         return notificationCompat;
@@ -239,7 +296,6 @@ public class MyReceiver extends BroadcastReceiver {
         try {
             out = getMsg() + "\nNext fetch: " + convertDate(startAt, context);
         } catch (Throwable e) {
-            appDestroyed = true;
             return getNotification(context, e);
         }
 
@@ -252,25 +308,8 @@ public class MyReceiver extends BroadcastReceiver {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_CALL)
                 .setSilent(!updatedStatus())
-                .addAction(actionStop)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
-        int highestStatus = getHighestStatus();
-        if (updatedStatus()) {
-            if (highestStatus == 5) {
-                //flash orange
-                notificationCompat
-                        .setDefaults(Notification.DEFAULT_VIBRATE | Notification.FLAG_SHOW_LIGHTS)
-                        .setVibrate(new long[] { 1000, 1000 })
-                        .setLights(Color.YELLOW, 1000, 1000);
-            } else if (highestStatus == 6) {
-                //flash red
-                notificationCompat
-                        .setDefaults(Notification.FLAG_SHOW_LIGHTS)
-                        .setVibrate(new long[] { 1000, 1000, 1000 })
-                        .setLights(Color.RED, 1000, 1000);
-            }
-        }
         return notificationCompat;
     }
 
@@ -290,31 +329,25 @@ public class MyReceiver extends BroadcastReceiver {
     }
 
     public void startAlert(Context context, long startAt) {
-        Intent intent = new Intent(context, MyReceiver.class);
-        pendingIntent = PendingIntent.getBroadcast(context.getApplicationContext(), 234, intent, PendingIntent.FLAG_IMMUTABLE);
-        alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-        if (startAt > System.currentTimeMillis()) {
-            alarmManager.setAlarmClock(new AlarmManager.AlarmClockInfo(startAt, pendingIntent), pendingIntent);
-        } else {
-            Log.d("StartAlert", ": system time: "+System.currentTimeMillis()+" lower than start time: "+startAt);
-        }
-        //MainActivity.alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, startAt - (earlySeconds * 1000) - (earlyMinutes * 60000), MainActivity.pendingIntent);
+        handler.postDelayed(runnable, startAt);
     }
 
     // lets do our part not spam the endpoint if not needed!
     public static long getStartOffset() {
+        //TODO put this back before release
+        long performance = 1;
         int maxStatus = 1;
 
         for (Status status: getStatusList()) {
             if (status.status > maxStatus) maxStatus = status.status;
         }
 
-        if (maxStatus == 1) return 5*60000L; //every 5 minutes
-        else if (maxStatus == 2) return 4*60000L; //every 4 minutes
-        else if (maxStatus == 3) return 3*60000L; //every 3 minutes
-        else if (maxStatus == 4) return 2*60000L; //every 2 minutes
-        else if (maxStatus == 5) return 60000L; //every 1 minute
-        else return 6L*60000L; //every 6 minutes
+        if (maxStatus == 1) return 5*60000L/performance; //every 5 minutes
+        else if (maxStatus == 2) return 4*60000L/performance; //every 4 minutes
+        else if (maxStatus == 3) return 3*60000L/performance; //every 3 minutes
+        else if (maxStatus == 4) return 2*60000L/performance; //every 2 minutes
+        else if (maxStatus == 5) return 60000L/performance; //every 1 minute
+        else return 6L*60000L/performance; //every 6 minutes
     }
 
     public static String convertDate(Long dateInMilliseconds, Context context) {
@@ -324,4 +357,13 @@ public class MyReceiver extends BroadcastReceiver {
             return DateFormat.format("HH:mm:ss", dateInMilliseconds).toString();
         }
     }
+
+    static void updateNotificationContent(Context context, Notification notificationCompat) {
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager == null) {
+            return;
+        }
+        notificationManager.notify(NOTIFICATION_ID, notificationCompat);
+    }
+
 }
