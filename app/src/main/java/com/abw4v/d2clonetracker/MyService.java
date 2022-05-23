@@ -36,7 +36,8 @@ public class MyService extends Service{
 
     static final String TAG = "d2rCloneTrackerService";
 
-    public static final String ERROR_MSG_NETWORK = "Network Failure: \n\nMax retries (5) exceeded, will try again in 3 minutes \n\nThere may be an issue with your connection, battery optimization (doze mode), and/or diablo2.io server.";
+    public static final String ERROR_MSG_NETWORK_INITIAL = "Network Failure: \n\nMax retries (5) exceeded, please try again later. \n\nThere may be an issue with your connection, and/or diablo2.io server.";
+    public static final String ERROR_MSG_NETWORK = "Network Failure: \n\nMax retries (5) exceeded, will try again in 3 minutes. \n\nThere may be an issue with your connection, and/or diablo2.io server.";
 
     public static final String CHANNEL_ID ="d2rCloneTrackerProgress";
     public static final String ERROR_CHANNEL_ID ="d2rCloneTrackerError";
@@ -61,6 +62,7 @@ public class MyService extends Service{
     public static int modeHardcore = 0;
     public static int modeLadder = 0;
     public static int modeRegion = 0;
+    public static int modePerformance = 1;
 
     public static final int HARDCORE = 1;
     public static final int SOFTCORE = 2;
@@ -334,20 +336,18 @@ public class MyService extends Service{
 
     // lets do our part not spam the endpoint if not needed!
     public static long getStartOffset() {
-        //TODO put this back before release
-        long performance = 1;
         int maxStatus = 1;
 
         for (Status status: getStatusList()) {
             if (status.status > maxStatus) maxStatus = status.status;
         }
 
-        if (maxStatus == 1) return 5*60000L/performance; //every 5 minutes
-        else if (maxStatus == 2) return 4*60000L/performance; //every 4 minutes
-        else if (maxStatus == 3) return 3*60000L/performance; //every 3 minutes
-        else if (maxStatus == 4) return 2*60000L/performance; //every 2 minutes
-        else if (maxStatus == 5) return 60000L/performance; //every 1 minute
-        else return 6L*60000L/performance; //every 6 minutes
+        if (maxStatus == 1) return 5*60000L/modePerformance; //every 5 minutes
+        else if (maxStatus == 2) return 4*60000L/modePerformance; //every 4 minutes
+        else if (maxStatus == 3) return 3*60000L/modePerformance; //every 3 minutes
+        else if (maxStatus == 4) return 2*60000L/modePerformance; //every 2 minutes
+        else if (maxStatus == 5) return 60000L/modePerformance; //every 1 minute
+        else return 6L*60000L/modePerformance; //every 6 minutes
     }
 
     public static String convertDate(Long dateInMilliseconds, Context context) {

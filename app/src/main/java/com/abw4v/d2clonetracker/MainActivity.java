@@ -50,12 +50,14 @@ public class MainActivity extends AppCompatActivity {
     static final String PREFS_HARDCORE = "hardcore";
     static final String PREFS_LADDER = "ladder";
     static final String PREFS_REGION = "region";
-    static final String PREFS_DOZE = "dozeMode";
+    static final String PREFS_PERFORMANCE = "performanceMode";
     static final String PREFS_ERROR_NETWORK = "showNetworkErrors";
 
     static final String d2rURL = "https://diablo2.io/";
     static final String faqURL = "https://github.com/armlesswunder/d2rCloneTrackerAndroid#faq";
-    static final boolean debug = false;
+
+    // TODO: make sure this is right before any release
+    static final boolean paid = false;
 
     final List<String> listRegion = new ArrayList<>(Arrays.asList("All", "Americas", "Europe", "Asia"));
     final List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
@@ -67,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     Spinner spinnerRegion;
 
     Switch switchErrorNetwork;
+    Switch switchPerformance;
 
     ProgressBar progressBar;
 
@@ -104,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
         modeHardcore = prefs.getInt(PREFS_HARDCORE, 0);
         modeLadder = prefs.getInt(PREFS_LADDER, 0);
         modeRegion = prefs.getInt(PREFS_REGION, 0);
+        modePerformance = prefs.getInt(PREFS_PERFORMANCE, 1);
         showErrorNetwork = prefs.getBoolean(PREFS_ERROR_NETWORK, false);
     }
 
@@ -146,6 +150,19 @@ public class MainActivity extends AppCompatActivity {
         switchErrorNetwork.setChecked(showErrorNetwork);
         switchErrorNetwork.setOnClickListener(v -> {
             showErrorNetwork = switchErrorNetwork.isChecked();
+            setDefaults();
+        });
+
+        switchPerformance = findViewById(R.id.switchPerformance);
+        switchPerformance.setChecked(modePerformance == 2);
+        switchPerformance.setOnClickListener(v -> {
+            if (paid) {
+                modePerformance = switchPerformance.isChecked() ? 2 : 1;
+            } else {
+                paidAlert();
+                switchPerformance.setChecked(false);
+                modePerformance = 1;
+            }
             setDefaults();
         });
 
@@ -208,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
                 .putInt(PREFS_HARDCORE, modeHardcore)
                 .putInt(PREFS_LADDER, modeLadder)
                 .putInt(PREFS_REGION, modeRegion)
+                .putInt(PREFS_PERFORMANCE, modePerformance)
                 .putBoolean(PREFS_ERROR_NETWORK, showErrorNetwork)
                 .apply();
     }
@@ -216,6 +234,13 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         statusList.clear();
         getData();
+    }
+
+    void paidAlert() {
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
+        alertBuilder.setTitle("NOTICE");
+        alertBuilder.setMessage("Performance mode is available for paid users only! Get status updates twice as often! A portion of the proceeds will got to Teebling's site (Lets support the backend that makes this app work!)");
+        alertBuilder.show();
     }
 
     public void getData() {
@@ -246,7 +271,6 @@ public class MainActivity extends AppCompatActivity {
                     //MyReceiver.showNotification(MainActivity.this, System.currentTimeMillis() + MyReceiver.getStartOffset());
                     //playAlertSound(this);
 
-                    //TODO: new imp
                     startService(MainActivity.this.getApplicationContext());
                 } catch (Throwable e) {
                     e.printStackTrace();
@@ -256,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
             }, error -> {
                 //getData();
                 runOnUiThread(() -> progressBar.setVisibility(View.GONE));
-                showError(MainActivity.this, new Throwable(ERROR_MSG_NETWORK));
+                showError(MainActivity.this, new Throwable(ERROR_MSG_NETWORK_INITIAL));
                 error.printStackTrace();
         });
 
