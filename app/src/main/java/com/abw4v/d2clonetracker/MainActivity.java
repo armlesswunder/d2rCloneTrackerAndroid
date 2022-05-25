@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.util.ArrayMap;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -29,8 +30,11 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -39,7 +43,9 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.abw4v.d2clonetracker.MyService.*;
@@ -57,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     static final String faqURL = "https://github.com/armlesswunder/d2rCloneTrackerAndroid#faq";
 
     // TODO: make sure this is right before any release
-    static final boolean paid = false;
+    static final boolean paid = true;
 
     final List<String> listRegion = new ArrayList<>(Arrays.asList("All", "Americas", "Europe", "Asia"));
     final List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
@@ -239,7 +245,7 @@ public class MainActivity extends AppCompatActivity {
     void paidAlert() {
         AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
         alertBuilder.setTitle("NOTICE");
-        alertBuilder.setMessage("Performance mode is available for paid users only! Get status updates twice as often! A portion of the proceeds will got to Teebling's site (Lets support the backend that makes this app work!)");
+        alertBuilder.setMessage("Performance mode is available for paid users in United States only! Get status updates twice as often! A portion of the proceeds will got to Teebling's site (Lets support the backend that makes this app work!)");
         alertBuilder.show();
     }
 
@@ -282,7 +288,15 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> progressBar.setVisibility(View.GONE));
                 showError(MainActivity.this, new Throwable(ERROR_MSG_NETWORK_INITIAL));
                 error.printStackTrace();
-        });
+        }) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String>  params = new HashMap<>();
+                params.put("User-Agent", "ArmlessWunder");
+
+                return params;
+            }
+        };
 
         queue.add(stringRequest);
     }

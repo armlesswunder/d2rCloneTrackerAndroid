@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/d2CloneTracker.iml" filepath="$PROJECT_DIR$/.idea/modules/d2CloneTracker.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/d2CloneTracker.app.unitTest.iml" />
     </modules>
   </component>
 </project>

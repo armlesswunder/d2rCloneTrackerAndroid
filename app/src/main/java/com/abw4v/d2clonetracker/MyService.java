@@ -19,6 +19,7 @@ import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
@@ -28,7 +29,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.abw4v.d2clonetracker.MainActivity.*;
 
@@ -161,7 +164,9 @@ public class MyService extends Service{
                         e.printStackTrace();
                         startAlert(context, ERROR_MAJOR_OFFSET);
                         retries = 0;
-                        showError(context, e);
+                        if (showErrorNetwork) {
+                            showError(context, e);
+                        }
                     }
                 }, error -> {
             if (retries < 5) {
@@ -178,7 +183,15 @@ public class MyService extends Service{
                     showError(context, new Throwable(ERROR_MSG_NETWORK));
                 }
             }
-        });
+        }) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String>  params = new HashMap<>();
+                params.put("User-Agent", "ArmlessWunder");
+
+                return params;
+            }
+        };;
 
         queue.add(stringRequest);
     }
