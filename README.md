@@ -17,6 +17,31 @@ abw4v.dev@gmail.com
 2) Bug fixes (If any come up)
 3) Custom icon (Feel free to help with this one :D)
 
+# Guide
+
+## Performance mode
+Makes the app fetch updates twice as often. Note: THis will of course, cause the app to use more battery and data. Use at you own discretion!
+
+## Timing
+A few people have asked about how often the app makes requests so here goes:
+
+It depends on the greatest status based on your filters and if you choose performance mode. Here's the exact scheme:
+
+\*where GS = greatest status based on your mode\*
+
+GS = 1: 5 min (non-performance) / 2.5 min (performance)
+
+GS = 2: 4 min (non-performance) / 2 min   (performance)
+
+GS = 3: 3 min (non-performance) / 1.5 min (performance)
+
+GS = 4: 2 min (non-performance) / 1 min   (performance)
+
+GS = 5: 1 min (non-performance) / 30 sec  (performance)
+
+GS = 6: 6 min (non-performance) / 3 min   (performance)
+
+
 # FAQ
 
 ## What is this app?
