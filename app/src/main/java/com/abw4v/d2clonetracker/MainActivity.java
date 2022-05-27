@@ -37,6 +37,9 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -63,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     static final String faqURL = "https://github.com/armlesswunder/d2rCloneTrackerAndroid#faq";
 
     // TODO: make sure this is right before any release
-    static final boolean paid = true;
+    static final boolean paid = false;
 
     final List<String> listRegion = new ArrayList<>(Arrays.asList("All", "Americas", "Europe", "Asia"));
     final List<String> listHardcore = new ArrayList<>(Arrays.asList("Both", "Hardcore", "Softcore"));
@@ -78,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
     Switch switchPerformance;
 
     ProgressBar progressBar;
+
+    AdView adView;
 
     // Vars
     MyService myService;
@@ -106,6 +111,15 @@ public class MainActivity extends AppCompatActivity {
         linkViewProperties();
         createNotificationChannel();
         createErrorChannel();
+
+        adView = findViewById(R.id.adView);
+        if (!paid) {
+            MobileAds.initialize(this);
+            AdRequest adRequest = new AdRequest.Builder().build();
+            adView.loadAd(adRequest);
+        } else {
+            adView.setVisibility(View.GONE);
+        }
     }
 
     void getDefaults() {
@@ -162,13 +176,7 @@ public class MainActivity extends AppCompatActivity {
         switchPerformance = findViewById(R.id.switchPerformance);
         switchPerformance.setChecked(modePerformance == 2);
         switchPerformance.setOnClickListener(v -> {
-            if (paid) {
-                modePerformance = switchPerformance.isChecked() ? 2 : 1;
-            } else {
-                paidAlert();
-                switchPerformance.setChecked(false);
-                modePerformance = 1;
-            }
+            modePerformance = switchPerformance.isChecked() ? 2 : 1;
             setDefaults();
         });
 
@@ -240,13 +248,6 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         statusList.clear();
         getData();
-    }
-
-    void paidAlert() {
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-        alertBuilder.setTitle("NOTICE");
-        alertBuilder.setMessage("Performance mode is available for paid users in United States only! Get status updates twice as often! A portion of the proceeds will got to Teebling's site (Lets support the backend that makes this app work!)");
-        alertBuilder.show();
     }
 
     public void getData() {

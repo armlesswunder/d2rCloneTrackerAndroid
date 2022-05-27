@@ -17,6 +17,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
+        <!-- (1)=ca-app-pub-4755282088061647~8992025820 -->
+        <!-- (2)=ca-app-pub-4755282088061647/8465960957 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4755282088061647~8992025820"/>
+
         <service
             android:name=".MyService"
             android:enabled="true" />
