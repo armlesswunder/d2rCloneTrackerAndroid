@@ -6,16 +6,10 @@ Download here: https://github.com/armlesswunder/d2rCloneTrackerAndroid/releases
 
 # Credits
 
-Teebling: For making the endpoint the app uses to pull dclone progress data and for the amazing site: https://diablo2.io/
+Mysterio: For making the endpoint the app uses to pull dclone progress data and for the amazing site: https://www.d2emu.com/
 
 # Contact
 abw4v.dev@gmail.com
-
-# Future plans
-
-1) Improve UI
-2) Bug fixes (If any come up)
-3) Custom icon (Feel free to help with this one :D)
 
 # Guide
 
@@ -63,11 +57,7 @@ There is either a Service Outage or you are not connected to a reliable network.
 
 1) Close the app, open the app, press stop, and then press start. (In this order) I've never had to do this but its always good to mention the ultimate troubleshooting steps. :)
 
-2) Diablo2.io backend may be down. This is where I get my data, so just be patient as it comes back up.
-
-## The app is wrong, it says X/6 status when really the status is Y/6
-
-Thats because this app relies on human input to keep track of statuses. If someone enters the wrong status, you will get the wrong status. Be mad at people, not my poor, diligent, and loyal software.
+2) d2emu backend may be down. This is where I get my data, so just be patient as it comes back up.
 
 ## Does the app work for Xbox/Switch/PS5/PC?
 
