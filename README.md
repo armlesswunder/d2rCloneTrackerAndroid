@@ -12,29 +12,7 @@ Mysterio: For making the endpoint the app uses to pull dclone progress data and 
 abw4v.dev@gmail.com
 
 # Guide
-
-## Performance mode
-Makes the app fetch updates twice as often. Note: THis will of course, cause the app to use more battery and data. Use at you own discretion!
-
-## Timing
-A few people have asked about how often the app makes requests so here goes:
-
-It depends on the greatest status based on your filters and if you choose performance mode. Here's the exact scheme:
-
-\*where GS = greatest status based on your mode\*
-
-GS = 1: 5 min (non-performance) / 2.5 min (performance)
-
-GS = 2: 4 min (non-performance) / 2 min   (performance)
-
-GS = 3: 3 min (non-performance) / 1.5 min (performance)
-
-GS = 4: 2 min (non-performance) / 1 min   (performance)
-
-GS = 5: 1 min (non-performance) / 30 sec  (performance)
-
-GS = 6: 6 min (non-performance) / 3 min   (performance)
-
+The app listens for real-time automated updates via d2emu. The app may send you an audible notification if progress is made with respect to your selected app preferences.
 
 # FAQ
 
@@ -42,8 +20,7 @@ GS = 6: 6 min (non-performance) / 3 min   (performance)
 
 It allows you to get notifications whenever the diablo clone event in any region makes progress. 
 
-Example 1: America is at 1/6 of dclone event progress, and it increases to 2/6; you will get an audible notification.
-Example 2: America is at 1/6 of dclone event progress, and it stays at 1/6; you will get silent notification. (Just to let you see the timestamps (confirm that the app is still running as expected in the background))
+Example: America is at 1/6 of dclone event progress, and it increases to 2/6; you will get an audible notification 
 
 ## How can I get notifications?
 
