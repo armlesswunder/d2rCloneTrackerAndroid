@@ -4,12 +4,12 @@ Play store: https://play.google.com/store/apps/details?id=com.abw4v.d2clonetrack
 
 Download here: https://github.com/armlesswunder/d2rCloneTrackerAndroid/releases
 
+# News
+As of 2026-04-07 I'm going to step away from updating or providing fixes to this repo until further notice. Please feel free to fork the repo and make adjustments as necessary.
+
 # Credits
 
 Mysterio: For making the endpoint the app uses to pull dclone progress data and for the amazing site: https://www.d2emu.com/
-
-# Contact
-abw4v.dev@gmail.com
 
 # Guide
 The app listens for real-time automated updates via d2emu. The app may send you an audible notification if progress is made with respect to your selected app preferences.
@@ -41,16 +41,3 @@ There is either a Service Outage or you are not connected to a reliable network.
 Yes. Platform does not matter, only SOJ sales for a particular Region (and Mode) determine dclone walk (AFAIK; I only play on PC) 
 
 [Read here for detailed info](https://diablo2.io/forums/new-diablo-clone-mechanics-revealed-t852811.html)
-
-## I'm not happy with this app. It needs to do better
-
-Send me an email with what exactly needs to be better. I am fine with making changes if it make the app better in a practical way. 
-
-OR
-
-Fix it yourself; you have the code here. 
-
-## Closing Statement
-I hope this app is useful to you, as it is to me. I do this, and all my other projects, to improve the lives of myself and other fans. 
-
-So far, I've used it to not only kill my first DClone, but to kill 5 so far! Good luck, I hope you find similar fortune!
